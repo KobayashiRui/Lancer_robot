@@ -1,0 +1,2 @@
+
+-DCATKIN_DEVEL_PREFIX=/home/kr/git/Lancer_robot/lancer_robot_ros/devel -DCMAKE_INSTALL_PREFIX=/home/kr/git/Lancer_robot/lancer_robot_ros/install -G Unix Makefiles
