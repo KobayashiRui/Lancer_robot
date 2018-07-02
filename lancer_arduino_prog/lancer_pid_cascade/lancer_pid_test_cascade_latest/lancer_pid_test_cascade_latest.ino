@@ -16,6 +16,9 @@ const int Step_pin2 = 9;
 int output1 = 1;
 int output2 = 1;
 
+volatile int Timer1_start;
+volatile int Timer2_start;
+
 // class default I2C address is 0x68
 // specific I2C addresses may be passed as a parameter here
 // AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
@@ -79,21 +82,31 @@ void delay_microsec(){
 
 //タイマー割り込み----------------------------
 void flash_timer2(){
+  if(Timer2_start == -1){return ;}
+  if(Timer2_start == 1){
+    Timer2_start = 0;
+  }else{
   output2 = !output2;
   digitalWrite(Step_pin2, output2);
   //delayMicroseconds(1);
   delay_microsec();
   output2 = !output2;
   digitalWrite(Step_pin2, output2);
+  }
 }
 
 void flash_timer1(){
+  if(Timer1_start == -1){return ;}
+  if(Timer1_start == 1){
+    Timer1_start = 0;
+  }else{
   output1 = !output1;
   digitalWrite(Step_pin1, output1);
   //delayMicroseconds(1);
   delay_microsec();
   output1 = !output1;
   digitalWrite(Step_pin1, output1);
+  }
 }
 //-----------------------------------------
 
@@ -185,6 +198,12 @@ void setup() {
     digitalWrite(Dir_pin2,dir2);
     digitalWrite(Step_pin1,output1);
     digitalWrite(Step_pin2,output2);
+    Timer1.initialize();
+    Timer1_start = -1;
+    Timer1.attachInterrupt(flash_timer1);
+    Timer3.initialize();
+    Timer2_start = -1;
+    Timer3.attachInterrupt(flash_timer2);
   
 }
 
@@ -220,12 +239,12 @@ float dt = 0.005;//周期
 //速度制御pid
 
 float kp1 = -3900;
-float ki1 = -1.5;
+float ki1 = -2.5;
 float kd1 = 0.0;
 //傾き制御pid
 float kp2 = 0.000228;
 float ki2 = 0.0;
-float kd2 = 0.00000056;
+float kd2 = 0.0000005;
 
 /*
 float kp1 = -3;
@@ -248,12 +267,15 @@ void timer_set1(float res1){
 
     int data=10;
     res1 = res1-contl_L_pps;
+    if(res1 == 0){
+        Serial.println("num 0");
+      }
     if(res1 < 0){
         dir1 = 1;
     }else{
         dir1 = 0;
     }
-    digitalWrite(Dir_pin1,dir1);
+
     
     if(counter <=100){
       counter +=1;
@@ -266,7 +288,12 @@ void timer_set1(float res1){
     }
     */
     velo_L = res1;
-    res1 = abs(res1);
+    /*
+    if(res1 < 0){
+      res1 = res1 * -1;
+    }
+    */
+
  /*
     if(res1 >= 0.03){
       time_set1 = int(40);
@@ -276,18 +303,28 @@ void timer_set1(float res1){
     time_set1 = int(1/res1);
     }
     */
-    if(res1 == 0){ res1 = 0.00001;}
+    if(res1 != 0){
     time_set1 = int(1/res1);
-    //Serial.println(time_set1);
+
     /*
     if(counter <=100){
       counter +=1;
       }else{
         data=0;
         }*/
-    if(time_set1 <= 50) {time_set1 = 50;}//40~50
+
+    if(time_set1 < 0){
+      time_set1 *= -1;
+    }
+    if(time_set1 <= 80) {time_set1 = 80;}//40~50
+    //if(time_set1 >= 10000){time_set1 = 10000;}
+    digitalWrite(Dir_pin1,dir1); 
+    Timer1_start = 1;
+    Serial.println(time_set1);
     Timer1.initialize(time_set1);
-    Timer1.attachInterrupt(flash_timer1);  
+    Timer1.restart();
+    Timer1.attachInterrupt(flash_timer1); 
+    }
   }
 int counter2=0;
 void timer_set2(float res2){
@@ -306,8 +343,6 @@ void timer_set2(float res2){
       }else{
         contl_R_pps=0;       }
         
-    digitalWrite(Dir_pin2,dir2);
-    
     /*
     if(res2 <= 0.0153 && res2 >= -0.0153){
       res2 = 0;
@@ -315,8 +350,8 @@ void timer_set2(float res2){
     */
     //Serial.println(counter2);
     velo_R = res2;
-    res2 = abs(res2);
-    if(res2 == 0){ res2 = 0.00001;}
+    //res2 = abs(res2);
+    if(res2 != 0){
     /*
     if(res2 >= 0.029){
       time_set2 = int(40);
@@ -334,10 +369,17 @@ void timer_set2(float res2){
         }
         */
     time_set2 = int(1/res2);
-    if(time_set2 <= 50) {time_set2 = 50;}//40~50
-    Serial.println(time_set2);
+    if(time_set2 < 0){
+        time_set2 *= -1;
+      }
+    if(time_set2 <= 80) {time_set2 = 80;}//40~50
+    //if(time_set2 >= 10000){time_set2 = 10000;}
+    digitalWrite(Dir_pin2,dir2);
+    Timer2_start = 1;
     Timer3.initialize(time_set2);//ms
-    Timer3.attachInterrupt(flash_timer2);
+    Timer3.restart();
+    Timer3.attachInterrupt(flash_timer2);}
+
 }
 
 
@@ -421,7 +463,7 @@ void loop() {
             Serial.println(ypr[2] * 180/M_PI);
         #endif
         if(counter > 400){
-        pid_controler(ypr[2]* deg);
+        pid_controler(ypr[2]* 180/M_PI);
         }else{
           counter += 1;
           }
