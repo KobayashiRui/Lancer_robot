@@ -171,20 +171,40 @@ void setup() {
 // ================================================================
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
-float e=0;//偏差(p成分)
-float old_e = 0;//前回の偏差
-float e_speed=0;//偏差の微分(d成分)
-float e_integ = 0;//偏差の蓄積(i成分)
-float parpas = 9;
+//速度制御pid
+float e            =0;//偏差(p成分)
+float old_e        = 0; //前回の偏差
+float e_speed      = 0; //偏差の微分(d成分)
+float e_integ      = 0; //偏差の蓄積(i成分)
+//傾きの制御
+float e2=0;
+float old_e2       = 0;
+float e2_speed     = 0;
+float e2_integ     = 0;
+
+float k_pps        = 0.0019635; //ppsから速度[rad/s]に変換する
+float parpas_velo  = 0; //速度の目標値
+float parpas_angle = 0;
+float velo         = 0; //左右の平均値
+float wheel_r      = 0.045; //車輪半径[m]
+
+float velo_L       = 0; //左車輪の目標値
+float contl_L_pps  = 0; //左車輪の追加速度pps
+float velo_R       = 0; //右車輪の目標値
+float contl_R_pps  = 0; //右車輪の追加速度pps
+
 float pps=0;
-float dt = 0.00005;//周期
+float dt = 0.002;//周期
 
 //PIDゲイン値=======================================================
-//float k1 = 0.0009;
-float k1 = 0.0018;
-//float k2 = 0.00000001;
-float k2=0.00000009;
-float k3 = 0.00000000001;
+//速度制御pid
+float kp1 = 0.8;
+float ki1=0.0001;
+float kd1 = 0.000001;
+//傾き制御pid
+float kp2 = 0.1;
+float ki2 = 0.1;
+float kd2 = 0.1
 //==================================================================
 
 float time_set1 = 0;
@@ -197,8 +217,10 @@ void timer_set1(float res1){
         dir1 = 1;
     }
     digitalWrite(Dir_pin1,dir1);
+    res1 = res1 + contl_L_pps;
+    velo_L = k_pps * res1 * wheel_r;
     res1 = abs(res1);  
-    time_set1 = 1/res1;
+    time_set1 = 1000/res1;
     Timer1.initialize(time_set1);//ms
     Timer1.attachInterrupt(flash_timer1);  
   }
@@ -210,8 +232,10 @@ void timer_set2(float res2){
       dir2 = 0;
     }
     digitalWrite(Dir_pin2,dir2);
+    res2 = res2 + contl_R_pps;
+    velo_R = k_pps * res2 * wheel_r;
     res2 = abs(res2);
-    time_set2 = 1/res2;
+    time_set2 = 1000/res2;
     time_set2 /= 100;
     FlexiTimer2::set(time_set2, 1.0/10000, flash_timer2);//ms
     FlexiTimer2::start();
@@ -219,11 +243,17 @@ void timer_set2(float res2){
 
 
 void pid_controler(float pitch_data){
-    e = pitch_data - parpas;
+    velo = (velo_L + velo_R)/2;
+    e = velo - parpas_velo;
     e_speed = (e-old_e)/dt;
     e_integ += (e-old_e)/2 * dt;
-    pps = k1 * e + k2 * e_speed + k3 * e_integ;
     old_e = e;
+    parpas_angle = kp1 * e + kd1 * e_speed + ki1 * e_integ;
+    e2 = pitch_data - parpas_angle;
+    e2_speed = (e2-old_e2)/dt;
+    e2_integ += (e2-old_e2)/2 * dt;
+    old_e2 = e2;
+    pps = kp2 * e2 + kd2 * e2_speed + ki2 * e2_integ;
     timer_set1(pps);
     timer_set2(pps);
 }

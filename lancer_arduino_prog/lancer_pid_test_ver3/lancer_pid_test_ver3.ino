@@ -1,4 +1,4 @@
-
+//現代制御バージョン
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -171,20 +171,20 @@ void setup() {
 // ================================================================
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
-float e=0;//偏差(p成分)
-float old_e = 0;//前回の偏差
+float step_late = 0;
+float old_e=0;
+float e=0;
 float e_speed=0;//偏差の微分(d成分)
-float e_integ = 0;//偏差の蓄積(i成分)
-float parpas = 9;
+float e_w=0;
+float parpas = 0.04536;
 float pps=0;
-float dt = 0.00005;//周期
+float k_pps=0.0019635;
+float dt = 0.005;//周期
 
-//PIDゲイン値=======================================================
-//float k1 = 0.0009;
-float k1 = 0.0018;
-//float k2 = 0.00000001;
-float k2=0.00000009;
-float k3 = 0.00000000001;
+//ゲイン値=======================================================
+float k1 = 13;
+float k2= 0.11;
+float k3 = 0.564;
 //==================================================================
 
 float time_set1 = 0;
@@ -198,7 +198,7 @@ void timer_set1(float res1){
     }
     digitalWrite(Dir_pin1,dir1);
     res1 = abs(res1);  
-    time_set1 = 1/res1;
+    time_set1 = 1000/res1;
     Timer1.initialize(time_set1);//ms
     Timer1.attachInterrupt(flash_timer1);  
   }
@@ -211,7 +211,7 @@ void timer_set2(float res2){
     }
     digitalWrite(Dir_pin2,dir2);
     res2 = abs(res2);
-    time_set2 = 1/res2;
+    time_set2 = 1000/res2;
     time_set2 /= 100;
     FlexiTimer2::set(time_set2, 1.0/10000, flash_timer2);//ms
     FlexiTimer2::start();
@@ -221,8 +221,8 @@ void timer_set2(float res2){
 void pid_controler(float pitch_data){
     e = pitch_data - parpas;
     e_speed = (e-old_e)/dt;
-    e_integ += (e-old_e)/2 * dt;
-    pps = k1 * e + k2 * e_speed + k3 * e_integ;
+    e_w = pps * k_pps + e_speed;
+    pps = k1 * e + k2 * e_speed + k3 * e_w;
     old_e = e;
     timer_set1(pps);
     timer_set2(pps);
@@ -286,11 +286,11 @@ void loop() {
             Serial.println(ypr[2] * 180/M_PI);
         #endif
         if(counter > 400){
-        pid_controler(ypr[2] * 180/M_PI);
+        pid_controler(ypr[2]);
         }else{
           counter += 1;
           }
-        delay(2);
+        delay(5);
 
 
     }
