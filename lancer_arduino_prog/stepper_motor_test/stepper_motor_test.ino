@@ -35,7 +35,7 @@ void setup() {
   digitalWrite(Step_pin2,output2);
   
   FlexiTimer2::set(50, 1.0/10000, flash_timer2);//ms
-  Timer1.initialize(5000);//ms
+  Timer1.initialize(50);//ms
   Timer1.attachInterrupt(flash_timer1);
   FlexiTimer2::start();
  
