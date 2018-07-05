@@ -107,7 +107,7 @@ void setup() {
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin();
-        Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
+        Wire.setClock(400000L); // 400kHz I2C clock. Comment this line if having compilation difficulties
     #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
         Fastwire::setup(400, true);
     #endif
@@ -115,7 +115,7 @@ void setup() {
     // initialize serial communication
     // (115200 chosen because it is required for Teapot Demo output, but it's
     // really up to you depending on your project)
-    Serial.begin(115200);
+    //Serial.begin(115200);
     //while (!Serial); // wait for Leonardo enumeration, others continue immediately
 
     // NOTE: 8MHz or slower host processors, like the Teensy @ 3.3V or Arduino
@@ -125,13 +125,13 @@ void setup() {
     // crystal solution for the UART timer.
 
     // initialize device
-    Serial.println(F("Initializing I2C devices..."));
+    //Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
     pinMode(INTERRUPT_PIN, INPUT);
 
     // verify connection
-    Serial.println(F("Testing device connections..."));
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    //Serial.println(F("Testing device connections..."));
+    //Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
 
     // wait for ready => 何か送られてくるまでスタートしない=============================================
@@ -142,7 +142,7 @@ void setup() {
     //===============================================================================================
 
     // load and configure the DMP
-    Serial.println(F("Initializing DMP..."));
+    //Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -154,16 +154,16 @@ void setup() {
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
         // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
+        //Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
-        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+        //Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
         attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
+        //Serial.println(F("DMP ready! Waiting for first interrupt..."));
         dmpReady = true;
 
         // get expected DMP packet size for later comparison
@@ -173,9 +173,9 @@ void setup() {
         // 1 = initial memory load failed
         // 2 = DMP configuration updates failed
         // (if it's going to break, usually the code will be 1)
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
+        //Serial.print(F("DMP Initialization failed (code "));
+        //Serial.print(devStatus);
+        //Serial.println(F(")"));
     }
     pinMode(Dir_pin1,OUTPUT);
     pinMode(Dir_pin2,OUTPUT);
@@ -213,8 +213,10 @@ float contl_L_pps  = 0.0; //左車輪の追加速度pps
 float velo_R       = 0; //右車輪の目標値
 float contl_R_pps  = 0.0005; //右車輪の追加速度pps
 
-float pps=0;
-float dt = 0.005;//周期
+float pps           = 0;
+float time_data     = 0;
+float old_time_data = 0;
+float dt            = 0;//周期
 
 //PIDゲイン値=======================================================
 //速度制御pid
@@ -227,20 +229,24 @@ float ki2 = 0.0;
 float kd2 = 0.0000004;
 //==================================================================
 
+float MIN_value = -1;
+float MAX_value =  1;
+float MAX_time  =  65535;
+
 int time_set1 = 0;
 int time_set2 = 0;
-int Max_balue = 65535;
 int counter=0;
 void timer_set1(float res1){
 
     int data=10;
+    res1 = res1-contl_L_pps;
     if(res1 < 0){
         dir1 = 1;
     }else{
         dir1 = 0;
     }
     digitalWrite(Dir_pin1,dir1);
-    res1 = res1-contl_L_pps;
+
     if(counter <=100){
       counter +=1;
       }else{
@@ -253,23 +259,20 @@ void timer_set1(float res1){
     */
     velo_L = res1;
     res1 = abs(res1);
- /*
-    if(res1 >= 0.03){
-      time_set1 = int(40);
-    }else if(res1 == 0){
-      time_set1 = int(10000);
+    if(res1 == 0){
+      time_set1 = int(MAX_time);
     }else{
     time_set1 = int(1/res1);
     }
-    */
-    time_set1 = int(1/res1);
-    //Serial.println(time_set1);
-    /*
+      /*
     if(counter <=100){
       counter +=1;
       }else{
         data=0;
         }*/
+    //time_set1 = int(1/res1);
+    //Serial.println(time_set1);
+  
     Timer1.initialize(time_set1);
     Timer1.attachInterrupt(flash_timer1);  
   }
@@ -278,6 +281,7 @@ void timer_set2(float res2){
  
     int data2=10;
     int res2_abs=0;
+    res2 = res2-contl_R_pps;
     if(res2 < 0){
       dir2 =0;
     }else{
@@ -290,24 +294,20 @@ void timer_set2(float res2){
         contl_R_pps=0;        }
         
     digitalWrite(Dir_pin2,dir2);
-    res2 = res2-contl_R_pps;
     /*
     if(res2 <= 0.0153 && res2 >= -0.0153){
       res2 = 0;
     }
     */
-    Serial.println(counter2);
+    //Serial.println(counter2);
     velo_R = res2;
     res2 = abs(res2);
-    /*
-    if(res2 >= 0.029){
-      time_set2 = int(40);
-    }else if(res2 == 0){
-      time_set2 = int(10000);
+    
+    if(res2 == 0){
+      time_set2 = int(MAX_time);
     }else{
     time_set2 = int(1/res2);
     }
-    */
     /*
     if(counter2 <=100){
       counter2 +=1;
@@ -315,7 +315,7 @@ void timer_set2(float res2){
         data2=0;
         }
         */
-    time_set2 = int(1/res2);
+    //time_set2 = int(1/res2);
     Timer3.initialize(time_set2);//ms
     Timer3.attachInterrupt(flash_timer2);
 }
@@ -323,17 +323,22 @@ void timer_set2(float res2){
 
 void pid_controler(float pitch_data){
     velo = (velo_L + velo_R)/2;
+    parpas_velo = (contl_R_pps + contl_L_pps)/2;
+    time_data = millis();
+    dt = (time_data - old_time_data) * 0.000001;
+    old_time_data = time_data;
     e = velo - parpas_velo;
     e_speed  = (e-old_e)/dt;
     e_integ += (e-old_e)/2 * dt;
     old_e = e;
-    parpas_angle = kp1 * e + kd1 * e_speed + ki1 * e_integ;
+    parpas_angle = (kp1 * e) + (kd1 * e_speed) + (ki1 * e_integ);
     //Serial.println(parpas_angle);
     e2 = pitch_data - parpas_angle;
     e2_speed = (e2-old_e2)/dt;
     e2_integ += (e2-old_e2)/2 * dt;
     old_e2 = e2;
-    pps = kp2 * e2 + kd2 * e2_speed + ki2 * e2_integ;
+    pps = (kp2 * e2) + (kd2 * e2_speed) + (ki2 * e2_integ);
+    pps = constrain(pps, MIN_value, MAX_value);
     timer_set2(pps);
     timer_set1(pps);
 }
@@ -368,7 +373,7 @@ void loop() {
     if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
-        Serial.println(F("FIFO overflow!"));
+        //Serial.println(F("FIFO overflow!"));
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
@@ -396,11 +401,13 @@ void loop() {
             //Serial.println(ypr[2]);
         #endif
         if(counter > 400){
-        pid_controler(ypr[2]*180/M_PI);
+          pid_controler(ypr[2]*180/M_PI);
+        }else if(counter ==400){
+          old_time_data = millis();
         }else{
           counter += 1;
-          }
-        delay(5);
+        }
+        delay(2);
 
 
     }
