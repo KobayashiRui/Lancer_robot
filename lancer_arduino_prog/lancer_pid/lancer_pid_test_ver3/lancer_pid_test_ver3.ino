@@ -182,8 +182,8 @@ float k_pps=0.0019635;
 float dt = 0.005;//周期
 
 //ゲイン値=======================================================
-float k1 = 13;
-float k2= 0.11;
+float k1 = 130;
+float k2= 0.01;
 float k3 = 0.564;
 //==================================================================
 
@@ -192,9 +192,9 @@ float time_set2 = 0;
 
 void timer_set1(float res1){
     if(res1 < 0){
-        dir1 = 0;
-    }else{
         dir1 = 1;
+    }else{
+        dir1 = 0;
     }
     digitalWrite(Dir_pin1,dir1);
     res1 = abs(res1);  
@@ -205,9 +205,9 @@ void timer_set1(float res1){
 
 void timer_set2(float res2){
     if(res2 < 0){
-      dir2 =1;
+      dir2 =0;
     }else{
-      dir2 = 0;
+      dir2 = 1;
     }
     digitalWrite(Dir_pin2,dir2);
     res2 = abs(res2);

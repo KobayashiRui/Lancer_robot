@@ -52,13 +52,13 @@ float dt           = 0.002;     //周期
 
 //===========PIDゲイン値===============================================
 //速度制御pid
-float kp1     = 100.0;
-float ki1     = 0.1;
+float kp1     = 1.0;
+float ki1     = 0.00001;
 float kd1     = 0.00001;
 //傾き制御pid
-float kp2     = 50;
-float ki2     = 0.01;
-float kd2     = 0.01;
+float kp2     = 8;
+float ki2     = 0.00001;
+float kd2     = 0.00001;
 //====================================================================
 
 unsigned long time_set1 = 0;      //タイマー1の時間設定
@@ -234,16 +234,21 @@ void timer_set1(float res1){
     }
     digitalWrite(Dir_pin1,dir1);
     res1 = res1 + contl_L_pps;
+    /*
     if(res1 <= 0.00024 && res1 >= -0.00024){
       res1 = 0;
     }
+    */
     velo_L = k_pps * res1 * wheel_r;
     res1 = abs(res1);
+    /*
     if(res1 == 0){
       time_set1 = Max_value;
     }else{
     time_set1 = (unsigned long)(1000000/res1);
     }
+    */
+    time_set1 = (1000/res1);
     Timer1.initialize(time_set1);
     Timer1.attachInterrupt(flash_timer1);  
   }
@@ -258,16 +263,21 @@ void timer_set2(float res2){
     
     digitalWrite(Dir_pin2,dir2);
     res2 = res2 + contl_R_pps;
+    /*
     if(res2 <= 0.00024 && res2 >= -0.00024){
       res2 = 0;
     }
+    */
     velo_R = k_pps * res2 * wheel_r;
     res2 = abs(res2);
+    /*
     if(res2 == 0){
       time_set2 = Max_value;
     }else{
     time_set2 = (unsigned long)(1000000/res2);
     }
+    */
+    time_set2 = (1000/res2);
     Timer3.initialize(time_set2);//ms
     Timer3.attachInterrupt(flash_timer2);
 }
@@ -315,12 +325,12 @@ void loop() {
             mpu.dmpGetQuaternion(&q, fifoBuffer);
             mpu.dmpGetGravity(&gravity, &q);
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-            //Serial.print("ypr\t");
-            //Serial.print(ypr[0] * 180/M_PI);
-            //Serial.print("\t");
-            //Serial.print(ypr[1] * 180/M_PI);
-            //Serial.print("\t");
-            //Serial.println(ypr[2] * 180/M_PI);
+            Serial.print("ypr\t");
+            Serial.print(ypr[0] * 180/M_PI);
+            Serial.print("\t");
+            Serial.print(ypr[1] * 180/M_PI);
+            Serial.print("\t");
+            Serial.println(ypr[2] * 180/M_PI);
         #endif
         if(counter > 400){
         pid_controler(ypr[2]);

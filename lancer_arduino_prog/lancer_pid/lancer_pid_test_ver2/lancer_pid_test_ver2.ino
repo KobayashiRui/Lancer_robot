@@ -181,9 +181,9 @@ float dt = 0.00005;//周期
 
 //PIDゲイン値=======================================================
 //float k1 = 0.0009;
-float k1 = 0.0018;
+float k1 = 0.0005;
 //float k2 = 0.00000001;
-float k2=0.00000009;
+float k2=0.000000009;
 float k3 = 0.00000000001;
 //==================================================================
 
@@ -192,9 +192,9 @@ float time_set2 = 0;
 
 void timer_set1(float res1){
     if(res1 < 0){
-        dir1 = 0;
-    }else{
         dir1 = 1;
+    }else{
+        dir1 = 0;
     }
     digitalWrite(Dir_pin1,dir1);
     res1 = abs(res1);  
@@ -205,9 +205,9 @@ void timer_set1(float res1){
 
 void timer_set2(float res2){
     if(res2 < 0){
-      dir2 =1;
+      dir2 =0;
     }else{
-      dir2 = 0;
+      dir2 = 1;
     }
     digitalWrite(Dir_pin2,dir2);
     res2 = abs(res2);

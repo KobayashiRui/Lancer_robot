@@ -214,17 +214,17 @@ float velo_R       = 0; //右車輪の目標値
 float contl_R_pps  = 0; //右車輪の追加速度pps
 
 float pps=0;
-float dt = 0.002;//周期
+float dt = 0.005;//周期
 
 //PIDゲイン値=======================================================
 //速度制御pid
-float kp1 = 100.0;
-float ki1=0.1;
-float kd1 = 0.00001;
+float kp1 = -1500;
+float ki1 = -0.1;
+float kd1 = 0;
 //傾き制御pid
-float kp2 = 50;
-float ki2 = 0.01;
-float kd2 = 0.01;
+float kp2 = 0.00006;
+float ki2 = 0;
+float kd2 = 0.000000001;
 //==================================================================
 
 int time_set1 = 0;
@@ -232,22 +232,27 @@ int time_set2 = 0;
 int Max_balue = 65535;
 void timer_set1(float res1){
     if(res1 < 0){
-        dir1 = 0;
-    }else{
         dir1 = 1;
+    }else{
+        dir1 = 0;
     }
     digitalWrite(Dir_pin1,dir1);
     res1 = res1 + contl_L_pps;
+    /*
     if(res1 <= 0.0153 && res1 >= -0.0153){
       res1 = 0;
     }
-    velo_L = k_pps * res1 * wheel_r;
+    */
+    velo_L = res1;
     res1 = abs(res1);
+    /*
     if(res1 == 0){
       time_set1 = int(65535);
     }else{
     time_set1 = int(100000/res1);
     }
+    */
+    time_set1 = int(1/res1);
     Timer1.initialize(time_set1);
     Timer1.attachInterrupt(flash_timer1);  
   }
@@ -255,23 +260,28 @@ void timer_set1(float res1){
 void timer_set2(float res2){
     int res2_abs=0;
     if(res2 < 0){
-      dir2 =1;
+      dir2 =0;
     }else{
-      dir2 = 0;
+      dir2 = 1;
     }
     
     digitalWrite(Dir_pin2,dir2);
     res2 = res2 + contl_R_pps;
+    /*
     if(res2 <= 0.0153 && res2 >= -0.0153){
       res2 = 0;
     }
-    velo_R = k_pps * res2 * wheel_r;
+    */
+    velo_R = res2;
     res2 = abs(res2);
+    /*
     if(res2 == 0){
       time_set2 = int(65535);
     }else{
     time_set2 = int(1000000/res2);
     }
+    */
+    time_set2 = int(1/res2);
     Timer3.initialize(time_set2);//ms
     Timer3.attachInterrupt(flash_timer2);
 }
@@ -284,6 +294,7 @@ void pid_controler(float pitch_data){
     e_integ += (e-old_e)/2 * dt;
     old_e = e;
     parpas_angle = kp1 * e + kd1 * e_speed + ki1 * e_integ;
+    Serial.println(parpas_angle);
     e2 = pitch_data - parpas_angle;
     e2_speed = (e2-old_e2)/dt;
     e2_integ += (e2-old_e2)/2 * dt;
@@ -348,15 +359,16 @@ void loop() {
             //Serial.print("\t");
             //Serial.print(ypr[1] * 180/M_PI);
             //Serial.print("\t");
-            //Serial.println(ypr[2] * 180/M_PI);
+            //Serial.println(ypr[2]);
         #endif
         if(counter > 400){
-        pid_controler(ypr[2]);
+        pid_controler(ypr[2]*180/M_PI);
         }else{
           counter += 1;
           }
-        delay(2);
+        delay(5);
 
 
     }
 }
+
