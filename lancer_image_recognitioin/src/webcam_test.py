@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import roslib
-roslib.load_manifest('lancer_test')
+#import roslib
+#roslib.load_manifest('lancer_test')
 import sys
 import rospy
 import cv2
