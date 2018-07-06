@@ -220,13 +220,13 @@ float dt            = 0;//周期
 
 //PIDゲイン値=======================================================
 //速度制御pid
-float kp1 = -3200;
+float kp1 = -220;
 float ki1 = -0.05;
 float kd1 = 0.0;
 //傾き制御pid
-float kp2 = 0.00022;
+float kp2 = 0.000052;
 float ki2 = 0.0;
-float kd2 = 0.0000004;
+float kd2 = 0.00000004;
 //==================================================================
 
 float MIN_value = -1;
@@ -402,8 +402,9 @@ void loop() {
         #endif
         if(counter > 400){
           pid_controler(ypr[2]*180/M_PI);
-        }else if(counter ==400){
+        }else if(counter == 400){
           old_time_data = millis();
+          counter +=1;
         }else{
           counter += 1;
         }
