@@ -1,6 +1,6 @@
 #include "I2Cdev.h"
 #include <ros.h>
-#include <std_msgs/String.h>
+#include <std_msgs/Int16MultiArray.h>
 #include "MPU6050_6Axis_MotionApps20.h"
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
     #include "Wire.h"
@@ -9,10 +9,10 @@
 #include<TimerThree.h>
 #include<TimerOne.h>
 //pin設定-----------------
-const int Dir_pin1 = 5;
-const int Dir_pin2 = 8;
-const int Step_pin1 = 6;
-const int Step_pin2 = 9;
+const uint8_t Dir_pin1 = 5;
+const uint8_t Dir_pin2 = 8;
+const uint8_t Step_pin1 = 6;
+const uint8_t Step_pin2 = 9;
 //-------------------------
 
 int output1 = 1;
@@ -30,7 +30,7 @@ MPU6050 mpu;
 #define OUTPUT_READABLE_YAWPITCHROLL
 
 #define INTERRUPT_PIN 7  // use pin 2 on Arduino Uno & most boards
-bool blinkState = false;
+//bool blinkState = false;
 
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -42,15 +42,15 @@ uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
-VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
+//VectorInt16 aa;         // [x, y, z]            accel sensor measurements
+//VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
+//VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
 VectorFloat gravity;    // [x, y, z]            gravity vector
-float euler[3];         // [psi, theta, phi]    Euler angle container
+//float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 // packet structure for InvenSense teapot demo
-uint8_t teapotPacket[14] = { '$', 0x02, 0,0, 0,0, 0,0, 0,0, 0x00, 0x00, '\r', '\n' };
+//uint8_t teapotPacket[14] = { '$', 0x02, 0,0, 0,0, 0,0, 0,0, 0x00, 0x00, '\r', '\n' };
 
 
 // ================================================================
@@ -115,19 +115,18 @@ void flash_timer1(){
 // ================================================================
 // ===                      INITIAL SETUP                       ===
 // ================================================================
-int dir1 = 1;//方向1
-int dir2 = 1;//方向2
+bool dir1 = 1;//方向1
+bool dir2 = 1;//方向2
 
 //=== ROS setting===
-ros:: NodeHandle nh;
-void messageCb(const std_msgs::String& data_msg){
-  //float datalist[2];
-  //datalist = data_msg;
-  //Serial.println(data_msg.data[0]); //left
+ros::NodeHandle_<ArduinoHardware,1,1,16,256> nh;
+void messageCb(const std_msgs::Int16MultiArray& data_msg){
+  Serial.println(data_msg.data[0]); //left
+  Serial.println(data_msg.data[1]);
   //Serial.println(data_msg.data[1]); //right
 }
 
-ros::Subscriber<std_msgs::String> sub("contl_data", &messageCb);
+ros::Subscriber<std_msgs::Int16MultiArray> sub("contl_data", &messageCb);
 
 
 void setup() {
@@ -226,21 +225,21 @@ void setup() {
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
 //速度制御pid
-float e            =0;//偏差(p成分)
+float e            = 0;//偏差(p成分)
 float old_e        = 0; //前回の偏差
 float e_speed      = 0; //偏差の微分(d成分)
 float e_integ      = 0; //偏差の蓄積(i成分)
 //傾きの制御
-float e2=0;
+float e2           = 0;
 float old_e2       = 0;
 float e2_speed     = 0;
 float e2_integ     = 0;
 
-float k_pps        = 0.0019635; //ppsから速度[rad/s]に変換する
+//float k_pps        = 0.0019635; //ppsから速度[rad/s]に変換する
 float parpas_velo  = 0; //速度の目標値
 float parpas_angle = 0;
 float velo         = 0; //左右の平均値
-float wheel_r      = 0.045; //車輪半径[m]
+//float wheel_r      = 0.045; //車輪半径[m]
 
 float velo_L       = 0; //左車輪の目標値
 float contl_L_pps  = 0.0; //左車輪の追加速度pps
@@ -252,14 +251,6 @@ float dt = 0.005;//周期
 
 //PIDゲイン値=======================================================
 //速度制御pid
-
-float kp1 = -3900;
-float ki1 = -1.5;
-float kd1 = 0.0;
-//傾き制御pid
-float kp2 = 0.000228;
-float ki2 = 0.0;
-float kd2 = 0.0000005;
 
 /*
 float kp1 = -3;
@@ -275,7 +266,7 @@ float kd2 = 0.0000000056;
 int time_set1 = 0;
 int time_set2 = 0;
 
-float initial_angle = 0;
+
 
 void timer_set1(float res1){
 
@@ -290,18 +281,6 @@ void timer_set1(float res1){
         dir1 = 0;
     }
 
-/*  
-    if(counter <=100){
-      counter +=1;
-      }else{
-        contl_L_pps=0;
-        }
-*/
-    /*
-    if(res1 <= 0.0153 && res1 >= -0.0153){
-      res1 = 0;
-    }
-    */
     velo_L = res1;
     /*
     if(res1 < 0){
@@ -343,9 +322,6 @@ void timer_set1(float res1){
   }
 
 void timer_set2(float res2){
- 
-    int data2=10;
-    int res2_abs=0;
     res2 = res2-contl_R_pps;
     if(res2 < 0){
       dir2 =0;
@@ -385,7 +361,15 @@ void timer_set2(float res2){
 
 
 void pid_controler(float pitch_data){
-    velo = (velo_L + velo_R)/2;
+float kp1 = -3900;
+float ki1 = -1.5;
+float kd1 = 0.0;
+//傾き制御pid
+float kp2 = 0.000228;
+float ki2 = 0.0;
+float kd2 = 0.0000005;
+float initial_angle = 0;
+    velo = (velo_R + velo_L)/2;
     parpas_velo = -(contl_R_pps + contl_L_pps)/2;
     e = velo - parpas_velo;
     e_speed  = (e-old_e)/dt;
@@ -399,12 +383,11 @@ void pid_controler(float pitch_data){
     e2_integ += (e2-old_e2)/2 * dt;
     old_e2 = e2;
     pps = kp2 * e2 + kd2 * e2_speed + ki2 * e2_integ;
-    //Serial.println(pps);
+
     timer_set2(pps);
     timer_set1(pps);
 }
 
-float deg = 180/M_PI;
 int counter = 0;
 void loop() {
     // if programming failed, don't try to do anything
