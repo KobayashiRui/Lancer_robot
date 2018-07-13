@@ -26,10 +26,10 @@
 #define KP_THROTTLE 0.07    
 #define KI_THROTTLE 0.04   
 */
-#define KP 0.15        
-#define KD 30         
-#define KP_THROTTLE 0.055   
-#define KI_THROTTLE 0.025
+#define KP 0.155        
+#define KD 32         
+#define KP_THROTTLE 0.058   
+#define KI_THROTTLE 0.028
 
 // Control gains for raiseup (the raiseup movement requiere special control parameters)
 #define KP_RAISEUP 0.16
@@ -51,7 +51,7 @@
 #define BATTERY_SHUTDOWN 95   // (9.5 volts) [for lipo batts]
 #define SHUTDOWN_WHEN_BATTERY_OFF 0    // 0: Not used, 1: Robot will shutdown when battery is off (BATTERY_CHECK SHOULD BE 1)
 
-#define DEBUG 1   // 0 = No debug info (default)
+#define DEBUG 0   // 0 = No debug info (default)
 
 #define CLR(x,y) (x&=(~(1<<y)))
 #define SET(x,y) (x|=(1<<y))
@@ -496,8 +496,8 @@ int ESPsendCommand(char *command, String stopstr, int timeout_secs)
 //ROSsetting======================================================================
 ros::NodeHandle_<ArduinoHardware,1,1,32,256> nh;
 void messageCb(const std_msgs::Int8MultiArray& data_msg){
-        throttle = (data_msg.data[0] - 0.5) * max_throttle;
-        steering = float(data_msg.data[1]* 0.1) - 0.5;
+        throttle = float(data_msg.data[0]*0.01 - 0.5) * max_throttle;
+        steering = float(data_msg.data[1]* 0.01) - 0.5;
       if (steering > 0)
         steering = (steering * steering + 0.5 * steering) * max_steering;
       else
@@ -700,6 +700,7 @@ void loop()
 #endif
 
   debug_counter++;
+  nh.spinOnce();
   /*
   OSC.MsgRead();  // Read UDP OSC messages
   if (OSC.newMessage)
