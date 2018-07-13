@@ -1,6 +1,6 @@
 #include "I2Cdev.h"
 #include <ros.h>
-#include <std_msgs/String.h>
+#include <std_msgs/Int16MultiArray.h>
 #include "MPU6050_6Axis_MotionApps20.h"
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
     #include "Wire.h"
@@ -117,17 +117,21 @@ void flash_timer1(){
 // ================================================================
 int dir1 = 1;//方向1
 int dir2 = 1;//方向2
+float contl_L_pps  = 0.0; //左車輪の追加速度pps
+float contl_R_pps  = 0.0; //右車輪の追加速度pps
 
 //=== ROS setting===
-ros:: NodeHandle nh;
-void messageCb(const std_msgs::String& data_msg){
+ros:: NodeHandle_<ArduinoHardware,1,1,32,256> nh;
+void messageCb(const std_msgs::Int16MultiArray& data_msg){
+  contl_L_pps = data_msg.data[0] * 0.0001;
+  contl_R_pps = data_msg.data[1] * 0.0001;
   //float datalist[2];
   //datalist = data_msg;
   //Serial.println(data_msg.data[0]); //left
   //Serial.println(data_msg.data[1]); //right
 }
 
-ros::Subscriber<std_msgs::String> sub("contl_data", &messageCb);
+ros::Subscriber<std_msgs::Int16MultiArray> sub("contl_data", &messageCb);
 
 
 void setup() {
@@ -142,7 +146,7 @@ void setup() {
     // initialize serial communication
     // (115200 chosen because it is required for Teapot Demo output, but it's
     // really up to you depending on your project)
-    Serial.begin(115200);
+    //Serial.begin(115200);
     //while (!Serial); // wait for Leonardo enumeration, others continue immediately
 
     // NOTE: 8MHz or slower host processors, like the Teensy @ 3.3V or Arduino
@@ -152,13 +156,13 @@ void setup() {
     // crystal solution for the UART timer.
 
     // initialize device
-    Serial.println(F("Initializing I2C devices..."));
+    //Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
     pinMode(INTERRUPT_PIN, INPUT);
 
     // verify connection
-    Serial.println(F("Testing device connections..."));
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    //Serial.println(F("Testing device connections..."));
+    //Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
 
     // wait for ready => 何か送られてくるまでスタートしない=============================================
@@ -169,7 +173,7 @@ void setup() {
     //===============================================================================================
 
     // load and configure the DMP
-    Serial.println(F("Initializing DMP..."));
+    //Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -181,16 +185,16 @@ void setup() {
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
         // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
+        //Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
-        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+        //Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
         attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
+        //Serial.println(F("DMP ready! Waiting for first interrupt..."));
         dmpReady = true;
 
         // get expected DMP packet size for later comparison
@@ -200,9 +204,9 @@ void setup() {
         // 1 = initial memory load failed
         // 2 = DMP configuration updates failed
         // (if it's going to break, usually the code will be 1)
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
+        //Serial.print(F("DMP Initialization failed (code "));
+        //Serial.print(devStatus);
+        //Serial.println(F(")"));
     }
     pinMode(Dir_pin1,OUTPUT);
     pinMode(Dir_pin2,OUTPUT);
@@ -243,9 +247,9 @@ float velo         = 0; //左右の平均値
 float wheel_r      = 0.045; //車輪半径[m]
 
 float velo_L       = 0; //左車輪の目標値
-float contl_L_pps  = 0.0; //左車輪の追加速度pps
+
 float velo_R       = 0; //右車輪の目標値
-float contl_R_pps  = 0.0; //右車輪の追加速度pps
+
 
 float pps=0;
 float dt = 0.005;//周期
@@ -335,7 +339,6 @@ void timer_set1(float res1){
     //if(time_set1 >= 10000){time_set1 = 10000;}
     digitalWrite(Dir_pin1,dir1); 
     Timer1_start = 1;
-    Serial.println(time_set1);
     Timer1.initialize(time_set1);
     Timer1.restart();
     Timer1.attachInterrupt(flash_timer1); 
@@ -438,7 +441,7 @@ void loop() {
     if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
-        Serial.println(F("FIFO overflow!"));
+        //Serial.println(F("FIFO overflow!"));
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
