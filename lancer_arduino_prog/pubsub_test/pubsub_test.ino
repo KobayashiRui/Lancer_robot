@@ -2,17 +2,17 @@
  * rosserial PubSub Example
  * Prints "hello world!" and toggles led
  */
-
+#define USE_USBCON
 #include <ros.h>
 #include <std_msgs/Int16MultiArray.h>
 #include <std_msgs/String.h>
 
-int data_list[2] = {0,0};
+float data_list[2] = {0,0};
 ros::NodeHandle_<ArduinoHardware,1,1,16,256> nh;//pub, sub, inputbuff, outputbuff
 
 void messageCb( const std_msgs::Int16MultiArray& toggle_msg){
-  data_list[0] = toggle_msg.data[0];
-  data_list[1] = toggle_msg.data[1];
+  data_list[0] = toggle_msg.data[0] * 0.001;
+  data_list[1] = toggle_msg.data[1] * 0.001;
 }
 
 //std_msgs::Int8MultiArray array_data;

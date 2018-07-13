@@ -1,4 +1,5 @@
 #include "I2Cdev.h"
+#define USE_USBCON
 #include <ros.h>
 #include <std_msgs/Int16MultiArray.h>
 #include "MPU6050_6Axis_MotionApps20.h"
@@ -117,14 +118,14 @@ void flash_timer1(){
 // ================================================================
 int dir1 = 1;//方向1
 int dir2 = 1;//方向2
-float contl_L_pps  = 0.0; //左車輪の追加速度pps
-float contl_R_pps  = 0.0; //右車輪の追加速度pps
+volatile float contl_L_pps  = 0.0; //左車輪の追加速度pps
+volatile float contl_R_pps  = 0.0; //右車輪の追加速度pps
 
 //=== ROS setting===
-ros:: NodeHandle_<ArduinoHardware,1,1,32,256> nh;
+ros:: NodeHandle_<ArduinoHardware,2,2,256,256> nh;
 void messageCb(const std_msgs::Int16MultiArray& data_msg){
-  contl_L_pps = data_msg.data[0] * 0.0001;
-  contl_R_pps = data_msg.data[1] * 0.0001;
+  contl_L_pps = float(data_msg.data[0] * 0.0001);
+  contl_R_pps = float(data_msg.data[1] * 0.0001);
   //float datalist[2];
   //datalist = data_msg;
   //Serial.println(data_msg.data[0]); //left
@@ -222,6 +223,7 @@ void setup() {
     Timer3.initialize();
     Timer2_start = -1;
     Timer3.attachInterrupt(flash_timer2);
+    nh.getHardware() -> setBaud(9600);
     nh.initNode();
     nh.subscribe(sub);
 }
@@ -257,13 +259,13 @@ float dt = 0.005;//周期
 //PIDゲイン値=======================================================
 //速度制御pid
 
-float kp1 = -3900;
-float ki1 = -1.5;
+float kp1 = -4020;
+float ki1 = -500;
 float kd1 = 0.0;
 //傾き制御pid
-float kp2 = 0.000228;
+float kp2 = 0.000232;
 float ki2 = 0.0;
-float kd2 = 0.0000005;
+float kd2 = 0.00000028;
 
 /*
 float kp1 = -3;
@@ -279,15 +281,12 @@ float kd2 = 0.0000000056;
 int time_set1 = 0;
 int time_set2 = 0;
 
-float initial_angle = 0;
+float initial_angle = 7;
 
 void timer_set1(float res1){
 
     int data=10;
     res1 = res1-contl_L_pps;
-    if(res1 == 0){
-        Serial.println("num 0");
-      }
     if(res1 < 0){
         dir1 = 1;
     }else{
@@ -335,7 +334,7 @@ void timer_set1(float res1){
     if(time_set1 < 0){
       time_set1 *= -1;
     }
-    if(time_set1 <= 80) {time_set1 = 80;}//40~50
+    if(time_set1 <= 200) {time_set1 = 200;}//40~50
     //if(time_set1 >= 10000){time_set1 = 10000;}
     digitalWrite(Dir_pin1,dir1); 
     Timer1_start = 1;
@@ -347,9 +346,9 @@ void timer_set1(float res1){
 
 void timer_set2(float res2){
  
-    int data2=10;
-    int res2_abs=0;
-    res2 = res2-contl_R_pps;
+    //int data2=10;
+    //int res2_abs=0;
+    res2 = res2 - contl_R_pps;
     if(res2 < 0){
       dir2 =0;
     }else{
@@ -370,12 +369,11 @@ void timer_set2(float res2){
     velo_R = res2;
     //res2 = abs(res2);
     if(res2 != 0){
-
     time_set2 = int(1/res2);
     if(time_set2 < 0){
         time_set2 *= -1;
       }
-    if(time_set2 <= 80) {time_set2 = 80;}//40~50
+    if(time_set2 <= 200) {time_set2 = 200;}//40~50
 
     digitalWrite(Dir_pin2,dir2);
     Timer2_start = 1;
@@ -389,7 +387,8 @@ void timer_set2(float res2){
 
 void pid_controler(float pitch_data){
     velo = (velo_L + velo_R)/2;
-    parpas_velo = -(contl_R_pps + contl_L_pps)/2;
+    //parpas_velo = (+contl_R_pps +contl_L_pps)/2;
+    parpas_velo = 0;
     e = velo - parpas_velo;
     e_speed  = (e-old_e)/dt;
     e_integ += (e-old_e)/2 * dt;
@@ -468,6 +467,8 @@ void loop() {
          //   Serial.println(ypr[2] * 180/M_PI);
         #endif
         if(counter > 400){
+        //contl_L_pps = 0;
+        //contl_R_pps = 0;
         pid_controler(ypr[2]* 180/M_PI);
         nh.spinOnce();
         }else{

@@ -242,9 +242,9 @@ float kp1 = -3900;
 float ki1 = -2.5;
 float kd1 = 0.0;
 //傾き制御pid
-float kp2 = 0.000228;
+float kp2 = 0.000225;
 float ki2 = 0.0;
-float kd2 = 0.0000005;
+float kd2 = 0.0000004;
 
 /*
 float kp1 = -3;
@@ -385,7 +385,7 @@ void timer_set2(float res2){
 
 void pid_controler(float pitch_data){
     velo = (velo_L + velo_R)/2;
-    parpas_velo = -(contl_R_pps + contl_L_pps)/2;
+    parpas_velo = (contl_R_pps + contl_L_pps)/2;
     e = velo - parpas_velo;
     e_speed  = (e-old_e)/dt;
     e_integ += (e-old_e)/2 * dt;
