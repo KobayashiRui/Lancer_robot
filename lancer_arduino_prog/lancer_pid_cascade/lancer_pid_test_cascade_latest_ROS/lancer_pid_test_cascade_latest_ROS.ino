@@ -120,12 +120,13 @@ int dir1 = 1;//方向1
 int dir2 = 1;//方向2
 volatile float contl_L_pps  = 0.0; //左車輪の追加速度pps
 volatile float contl_R_pps  = 0.0; //右車輪の追加速度pps
-
+volatile float contl_pps    = 0.0;
 //=== ROS setting===
 ros:: NodeHandle_<ArduinoHardware,2,2,256,256> nh;
 void messageCb(const std_msgs::Int16MultiArray& data_msg){
-  contl_L_pps = float(data_msg.data[0] * 0.0001);
-  contl_R_pps = float(data_msg.data[1] * 0.0001);
+  contl_pps   = float(data_msg.data[0] * 0.00001);
+  contl_L_pps = float(data_msg.data[1] * 0.00001);
+  contl_R_pps = float(data_msg.data[2] * 0.00001);
   //float datalist[2];
   //datalist = data_msg;
   //Serial.println(data_msg.data[0]); //left
@@ -232,7 +233,7 @@ void setup() {
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
 //速度制御pid
-float e            =0;//偏差(p成分)
+float e            = 0;//偏差(p成分)
 float old_e        = 0; //前回の偏差
 float e_speed      = 0; //偏差の微分(d成分)
 float e_integ      = 0; //偏差の蓄積(i成分)
@@ -254,18 +255,18 @@ float velo_R       = 0; //右車輪の目標値
 
 
 float pps=0;
-float dt = 0.005;//周期
+float dt = 0.002;//周期
 
 //PIDゲイン値=======================================================
 //速度制御pid
 
-float kp1 = -4020;
-float ki1 = -500;
+float kp1 = -2900;
+float ki1 = -100000;
 float kd1 = 0.0;
 //傾き制御pid
-float kp2 = 0.000232;
+float kp2 = 0.00025;
 float ki2 = 0.0;
-float kd2 = 0.00000028;
+float kd2 = 0.0000002;
 
 /*
 float kp1 = -3;
@@ -281,11 +282,11 @@ float kd2 = 0.0000000056;
 int time_set1 = 0;
 int time_set2 = 0;
 
-float initial_angle = 7;
+float initial_angle = 3;
 
 void timer_set1(float res1){
 
-    int data=10;
+    //int data=10;
     res1 = res1-contl_L_pps;
     if(res1 < 0){
         dir1 = 1;
@@ -335,7 +336,7 @@ void timer_set1(float res1){
       time_set1 *= -1;
     }
     if(time_set1 <= 200) {time_set1 = 200;}//40~50
-    //if(time_set1 >= 10000){time_set1 = 10000;}
+    if(time_set1 >= 100000){time_set1 = 100000;}
     digitalWrite(Dir_pin1,dir1); 
     Timer1_start = 1;
     Timer1.initialize(time_set1);
@@ -374,7 +375,7 @@ void timer_set2(float res2){
         time_set2 *= -1;
       }
     if(time_set2 <= 200) {time_set2 = 200;}//40~50
-
+    if(time_set2 >= 100000){time_set2 = 100000;}
     digitalWrite(Dir_pin2,dir2);
     Timer2_start = 1;
     Timer3.initialize(time_set2);//ms
@@ -388,7 +389,7 @@ void timer_set2(float res2){
 void pid_controler(float pitch_data){
     velo = (velo_L + velo_R)/2;
     //parpas_velo = (+contl_R_pps +contl_L_pps)/2;
-    parpas_velo = 0;
+    parpas_velo = contl_pps;
     e = velo - parpas_velo;
     e_speed  = (e-old_e)/dt;
     e_integ += (e-old_e)/2 * dt;
@@ -475,7 +476,7 @@ void loop() {
           counter += 1;
         }
         mpu.resetFIFO();
-        delay(5);
+        delay(2);
     }
 }
 
