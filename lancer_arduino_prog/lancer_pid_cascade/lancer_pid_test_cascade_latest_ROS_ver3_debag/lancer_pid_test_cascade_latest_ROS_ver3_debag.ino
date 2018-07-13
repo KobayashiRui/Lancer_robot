@@ -233,8 +233,8 @@ float velo_L       = 0; //左車輪の目標値
 float velo_R       = 0; //右車輪の目標値
 
 
-float pps=0;
-float dt = 0.005;//周期
+float pps          = 0;
+float dt           = 0.005;//周期
 
 float old_velo              = 0;
 float pitch_data_old        = 0;
@@ -256,13 +256,13 @@ float ki2 = 0.0;
 float kd2 = 0.0000002;
 */
 
-float kp1 = 5;
-float ki1 = 0.0;
+float kp1 = 0.002;
+float ki1 = 0.1;
 float kd1 = 0.0;
 //傾き制御pid
-float kp2 = 0.0005;
+float kp2 = 0.002;
 float ki2 = 0.0;
-float kd2 = 0.000001;
+float kd2 = 0.00001;
 
  //==================================================================
 
@@ -310,7 +310,7 @@ void timer_set1(float res1){
     }
     */
     if(res1 != 0){
-    time_set1 = int(1/res1);
+    time_set1 = int(100.0/res1);
 
     /*
     if(counter <=100){
@@ -357,7 +357,7 @@ void timer_set2(float res2){
     velo_R = res2;
     //res2 = abs(res2);
     if(res2 != 0){
-    time_set2 = int(1/res2);
+    time_set2 = int(100.0/res2);
     if(time_set2 < 0){
         time_set2 *= -1;
       }
@@ -375,9 +375,9 @@ void timer_set2(float res2){
 
 void pid_controler(float pitch_data){
   //機体速度の推定===================================
-    velo = -(velo_L + velo_R)/2;//負が前
+    //velo = -(velo_L + velo_R)/2;//負が前
     //old_velo = velo;//もしかしたら必要かも
-    //velo = (-0.1125)*(velo_L + velo_R)/2; //[pps] to [deg/s]
+    velo = (-0.1125)*(velo_L + velo_R)/2; //[pps] to [deg/s]
     Serial.print("velo : ");
     Serial.println(velo);
     angle_velo = -(pitch_data - pitch_data_old);//どっちが正か確認すること場合によっては係数をかける
@@ -385,7 +385,7 @@ void pid_controler(float pitch_data){
     Serial.println(angle_velo);
     pitch_data_old = pitch_data;
     //estimate_speed = -old_velo - angle_velo;
-    estimate_speed = velo +  angle_velo;
+    estimate_speed = velo + angle_velo;
     estimate_speed_filter = estimate_speed_filter * 0.95 + estimate_speed * 0.05; //lowpassfilter
     Serial.print("estimate_speed : ");
     Serial.println(estimate_speed_filter);
@@ -393,11 +393,10 @@ void pid_controler(float pitch_data){
  //PI制御===========================================
     parpas_velo = contl_pps;
     //e = estimate_speed_filter - parpas_velo;
-    e = parpas_velo - estimate_speed_filter;
+    e = (parpas_velo - estimate_speed_filter);
     e_speed  = (e-old_e)/dt;
     e_integ += (e-old_e)/2 * dt;
     old_e = e;
-
     parpas_angle = kp1 * e + kd1 * e_speed + ki1 * e_integ;
     Serial.print("parpas_angle : ");
     Serial.println(parpas_angle);
@@ -410,7 +409,7 @@ void pid_controler(float pitch_data){
     e2_speed = (e2-old_e2)/dt;
     e2_integ += (e2-old_e2)/2 * dt;
     old_e2 = e2;
-    pps = kp2 * e2 + kd2 * e2_speed + ki2 * e2_integ;
+    pps += kp2 * e2 + kd2 * e2_speed + ki2 * e2_integ;
     Serial.println(pps);
  //================================================
     //Serial.println(pps);
@@ -476,14 +475,14 @@ void loop() {
             //Serial.print("\t");
             //Serial.print(ypr[1] * 180/M_PI);
             //Serial.print("\t");
-            Serial.println(ypr[2] * 180/M_PI);
+            Serial.println(ypr[2]);
         #endif
         if(counter > 400){
         //contl_L_pps = 0;
         //contl_R_pps = 0;
-        pid_controler(ypr[2]* 180/M_PI);
+        pid_controler(ypr[2]);
         }else if(counter == 400){
-          pitch_data_old = ypr[2]*180/M_PI;
+          pitch_data_old = ypr[2];
           counter +=1;
         }else{
           counter += 1;
