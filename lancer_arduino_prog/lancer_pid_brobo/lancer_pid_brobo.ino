@@ -24,10 +24,10 @@
 #define KP_THROTTLE 0.07    
 #define KI_THROTTLE 0.04   
 */
-#define KP 0.059         
-#define KD 18           
-#define KP_THROTTLE 0.07    
-#define KI_THROTTLE 0.04
+#define KP 0.15        
+#define KD 30         
+#define KP_THROTTLE 0.055   
+#define KI_THROTTLE 0.025
 
 // Control gains for raiseup (the raiseup movement requiere special control parameters)
 #define KP_RAISEUP 0.16
