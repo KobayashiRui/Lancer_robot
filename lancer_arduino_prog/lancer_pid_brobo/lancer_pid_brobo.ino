@@ -18,10 +18,16 @@
 #define MAX_TARGET_ANGLE_PRO 40 //20
 
 // Default control terms
+/*
 #define KP 0.19         
 #define KD 28           
 #define KP_THROTTLE 0.07    
 #define KI_THROTTLE 0.04   
+*/
+#define KP 0.059         
+#define KD 18           
+#define KP_THROTTLE 0.07    
+#define KI_THROTTLE 0.04
 
 // Control gains for raiseup (the raiseup movement requiere special control parameters)
 #define KP_RAISEUP 0.16
@@ -37,13 +43,13 @@
 #define SERVO_MAX_PULSEWIDTH 2600
 
 // Battery management [optional]. This is not needed for alkaline or Ni-Mh batteries but usefull for if you use lipo batteries
-#define BATTERY_CHECK 1                // 0: No  check, 1: check (send message to interface)
+#define BATTERY_CHECK 0                // 0: No  check, 1: check (send message to interface)
 #define LIPOBATT 0             // Default 0: No Lipo batt 1: Lipo batt (to adjust battery monitor range)
 #define BATTERY_WARNING 105    // (10.5 volts) aprox [for lipo batts, disable by default]
 #define BATTERY_SHUTDOWN 95   // (9.5 volts) [for lipo batts]
 #define SHUTDOWN_WHEN_BATTERY_OFF 0    // 0: Not used, 1: Robot will shutdown when battery is off (BATTERY_CHECK SHOULD BE 1)
 
-#define DEBUG 0   // 0 = No debug info (default)
+#define DEBUG 1   // 0 = No debug info (default)
 
 #define CLR(x,y) (x&=(~(1<<y)))
 #define SET(x,y) (x|=(1<<y))
@@ -216,11 +222,11 @@ ISR(TIMER1_COMPA_vect)
   if (dir_M1 == 0) // If we are not moving we dont generate a pulse
     return;
   // We generate 1us STEP pulse
-  //SET(PORTE, 6); // STEP MOTOR 1
-  SET(PORTB,5);
+  SET(PORTE, 6); // STEP MOTOR 1
+  //SET(PORTB,5);
   delay_1us();
-  //CLR(PORTE, 6);
-  CLR(PORTE,5);
+  CLR(PORTE, 6);
+  //CLR(PORTB,5);
 }
 // TIMER 3 : STEPPER MOTOR2 SPEED CONTROL
 ISR(TIMER3_COMPA_vect)
@@ -498,7 +504,7 @@ void setup()
   pinMode(5, OUTPUT); // DIR MOTOR 2  PORTC,6
   */
   //mysetting
-  pinMode(9, OUTPUT); // STEP MOTOR 1 PORTB,5
+  pinMode(7, OUTPUT); // STEP MOTOR 1 PORTE,6
   pinMode(8, OUTPUT); // DIR MOTOR 1  PORTB,4
   pinMode(6, OUTPUT); // STEP MOTOR 2 PORTD,7
   pinMode(5, OUTPUT); // DIR MOTOR 2  PORTC,6
@@ -723,9 +729,9 @@ void loop()
   
 // if use ros control in this place
 #if DEBUG==1
-    Serial.print(throttle);
-    Serial.print(" ");
-    Serial.println(steering);
+    //Serial.print(throttle);
+    //Serial.print(" ");
+    //Serial.println(steering);
 #endif
 
   timer_value = millis();
@@ -906,7 +912,7 @@ void loop()
 #endif
       //Serial.println(value);
      
-      OSC.MsgSend("/1/rotary1\0\0,f\0\0\0\0\0\0",20,value);
+      //OSC.MsgSend("/1/rotary1\0\0,f\0\0\0\0\0\0",20,value);
       }
      
     //if (Battery_value < BATTERY_WARNING){
